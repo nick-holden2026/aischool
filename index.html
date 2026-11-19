@@ -1,4 +1,3 @@
-html
 <!DOCTYPE html>
 <html lang="en" data-era="1"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -679,7 +678,7 @@ function ansGym(i){const ok=GYM.opts[i]==GYM.a;[...document.querySelectorAll("#g
 
 function findM(id){for(const c of CHS){const m=c.ms.find(x=>x.id==id);if(m)return{c,m}}return null}
 function start(id){M_MODE="start";const f=findM(id);if(!f)return;C=f.m;mis=0;show(buddy()+`<div class="card" style="text-align:center"><div class="big">${C.e}</div><h2 style="margin:0">${E(C.t)}</h2><p>${E(C.s)}</p></div><button class="go" onclick="play()">Start ➜</button><button class="alt" onclick="go('map')">⬅ Back</button>`,C.s)}
-function play(){M_MODE="play";mis=0;show(buddy()+`<div id="g"></div><div id="aid" style="margin-top:10px"><button class="alt" onclick="hint()">💡 Hint</button> <button class="alt" onclick="go('map')">⬅ Map</button></div>`,C.t);window[C.fn]()}
+function play(){M_MODE="play";mis=0;show(buddy()+`<div class="hstep" style="margin:4px 0 8px"><b>🎯 Goal:</b> ${E(C.s)}</div><div id="g"></div><div id="aid" style="margin-top:10px"><button class="alt" onclick="hint()">💡 Watch How-To / Hint</button> <button class="alt" onclick="go('map')">⬅ Map</button></div>`,C.t+". "+C.s);window[C.fn]()}
 function hint(){openHelp()}
 let H_RAF=null;
 function stopHelpAnim(){if(H_RAF){cancelAnimationFrame(H_RAF);H_RAF=null;}}
@@ -861,51 +860,82 @@ function tro(){M_MODE="tro";
 }
 
 /* ================= SHARED & ERA 1-4 MODULES ================= */
-const LET=["O","X","L"],cl0=()=>Array(25).fill(0);let PX=[],PL=[],PG={};
-function g3_0(){PX=cl0();PL=[];PG={ph:1,ok:0,ask:"O"};d3_0()}
-function startTest3(){PG.ph=2;PG.ask=pk(LET);PX=cl0();d3_0()}
-function clr3(){PX=cl0();d3_0()}
-function d3_0(msg){const cnt=c=>PL.filter(e=>e.c==c).length,rdy=LET.every(c=>cnt(c)>=2);$("#g").innerHTML=`<div class="card"><b>${PG.ph==1?"Teach O, X, L (2 each)":"Paint "+PG.ask+" ("+PG.ok+"/3)"}</b><div class="grid5">${PX.map((v,i)=>`<button class="cell" style="background:${v?"var(--p)":"var(--card)"}" onclick="px3(${i})"></button>`).join("")}</div>${PG.ph==1?LET.map(c=>`<button class="alt" onclick="te3('${c}')">Teach ${c} (${cnt(c)})</button>`).join("")+(rdy?`<button class="go" onclick="startTest3()">➡️ Start Test</button>`:""):`<button class="alt" onclick="PG.ph=1;d3_0()">📚 Teach</button>`}<button class="pri" onclick="ak3()">🔍 Ask Bolt</button><button class="alt" onclick="clr3()">🧹 Clear</button><p>${msg||""}</p></div>`}
-function px3(i){PX[i]^=1;snd("tap");d3_0()}
-function te3(c){if(sum(PX)<3)return;PL.push({g:PX.slice(),c});PX=cl0();snd("ok");d3_0("Taught "+c)}
-function ak3(){if(!PL.length||sum(PX)<3)return;const best={};PL.forEach(e=>{const d=e.g.reduce((a,v,i)=>a+(v!=PX[i]?1:0),0);if(best[e.c]==null||d<best[e.c])best[e.c]=d});const g=Object.keys(best).sort((a,b)=>best[a]-best[b])[0];if(PG.ph==1)return d3_0("🤖 "+g);if(g==PG.ask){PG.ok++;snd("ok");if(PG.ok>=3)return win();PG.ask=pk(LET);PX=cl0();d3_0("✅")}else{bad();d3_0("❌ "+g)}}
+const LET=["O","X","L"],TPL={
+  O:[0,1,1,1,0, 1,0,0,0,1, 1,0,0,0,1, 1,0,0,0,1, 0,1,1,1,0],
+  X:[1,0,0,0,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,0,1,0, 1,0,0,0,1],
+  L:[1,0,0,0,0, 1,0,0,0,0, 1,0,0,0,0, 1,0,0,0,0, 1,1,1,1,1]
+},cl0=()=>Array(25).fill(0);let PX=[],PL=[],PG={};
+function g3_0(){PX=cl0();PL=[];PG={ph:1,ok:0,ask:"O"};d3_0("Step 1: Tap the dotted squares to draw the letter O, then press Teach O!")}
+function startTest3(){PG.ph=2;PG.ask=pk(LET);PX=cl0();d3_0("Now draw the letter "+PG.ask+" and press 🔍 Ask Bolt!")}
+function clr3(){PX=cl0();d3_0("Grid cleared! Tap squares to draw.")}
+function fillEx3(c){PX=TPL[c].slice();snd("tap");d3_0("Filled an example "+c+"! Now press Teach "+c+" (or edit squares).")}
+function d3_0(msg){
+  const cnt=c=>PL.filter(e=>e.c==c).length,rdy=LET.every(c=>cnt(c)>=2);
+  const needLet=PG.ph==1?(LET.find(c=>cnt(c)<2)||"O"):PG.ask;
+  const guide=TPL[needLet];
+  $("#g").innerHTML=`<div class="card">
+    <b>${PG.ph==1?(rdy?"✅ All 6 examples taught! Press Start Test below!":`Step 1: Draw the letter ${needLet} (${cnt(needLet)}/2 taught)`):`Step 2: Test Bolt! Draw the letter ${PG.ask} (${PG.ok}/3 right)`}</b>
+    <p class="mut" style="margin:4px 0">${PG.ph==1?(rdy?"Bolt is ready for your quiz!":`Tap squares (follow the faint ✨ dots to draw ${needLet}), then click <b>Teach ${needLet}</b>.`):`Draw ${PG.ask} on the grid, then click <b>🔍 Ask Bolt</b>!`}</p>
+    <div class="grid5">${PX.map((v,i)=>`<button class="cell" style="background:${v?"var(--p)":"var(--card)"};border-style:${!v&&guide[i]&&PG.ph==1?"dashed":"solid"};border-color:${!v&&guide[i]&&PG.ph==1?"var(--p)":"var(--line)"}" aria-label="Square ${i+1}" onclick="px3(${i})">${v?"":(guide[i]&&PG.ph==1?"·":"")}</button>`).join("")}</div>
+    ${PG.ph==1?`<div>${LET.map(c=>`<button class="${c==needLet&&!rdy?"pri":"alt"}" onclick="te3('${c}')">Teach ${c} (${cnt(c)}/2)</button>`).join("")} <button class="alt" onclick="fillEx3('${needLet}')">✨ Show ${needLet}</button> <button class="alt" onclick="clr3()">🧹 Clear</button></div>${rdy?`<button class="go" onclick="startTest3()">➡️ Step 2: Test Bolt!</button>`:""}`:`<div><button class="pri" onclick="ak3()">🔍 Ask Bolt</button> <button class="alt" onclick="clr3()">🧹 Clear</button> <button class="alt" onclick="PG.ph=1;d3_0()">📚 Teach More</button></div>`}
+    <div class="ex-fb ok" style="margin-top:8px">${E(msg||"Tap squares to draw!")}</div>
+  </div>`;
+}
+function px3(i){PX[i]^=1;snd("tap");d3_0("Painted "+sum(PX)+" squares.")}
+function te3(c){if(sum(PX)<3){snd("bad");say("Tap at least 3 squares to draw "+c+" first!");return d3_0("👆 Tap at least 3 squares first (or press ✨ Show "+c+")!")}PL.push({g:PX.slice(),c});PX=cl0();snd("ok");const left=LET.find(x=>PL.filter(e=>e.c==x).length<2);const m=left?`✅ Taught ${c}! Next, draw ${left} and press Teach ${left}.`:"🎉 All 6 taught! Now press ➡️ Step 2: Test Bolt!";say(m);d3_0(m)}
+function ak3(){if(!PL.length){say("Teach Bolt first!");return}if(sum(PX)<3){snd("bad");say("Draw the letter on the grid first!");return d3_0("👆 Tap at least 3 squares to draw "+PG.ask+" first!")}const best={};PL.forEach(e=>{const d=e.g.reduce((a,v,i)=>a+(v!=PX[i]?1:0),0);if(best[e.c]==null||d<best[e.c])best[e.c]=d});const g=Object.keys(best).sort((a,b)=>best[a]-best[b])[0];if(g==PG.ask){PG.ok++;snd("ok");if(PG.ok>=3)return win();PG.ask=pk(LET);PX=cl0();say("Yes! Bolt recognized it! Now draw "+PG.ask+".");d3_0("✅ Bolt guessed "+g+"! Now draw "+PG.ask+".")}else{bad();say("Bolt thought it was "+g+". Try drawing "+PG.ask+" clearer!");d3_0("❌ Bolt thought it was "+g+". Clear and draw "+PG.ask+" again!")}}
 
 const CORP=["the dog loves to play","the dog loves to run","the cat loves to sleep","the cat likes to play","my robot likes to learn","my robot likes to play","the robot likes to learn"],tkn=s=>s.toLowerCase().split(/[^a-z']+/).filter(Boolean);let SEN=[],WG={};
 function nx(w){const m={};CORP.forEach(s=>{const t=tkn(s);for(let i=0;i<t.length-1;i++)if(t[i]==w)m[t[i+1]]=(m[t[i+1]]||0)+1});const T=sum(Object.values(m));return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>[k,Math.round(v/T*100)])}
 function g3_1(){CORP.length=7;SEN=["the"];WG={ph:1};d3_1()}
-function d3_1(){const last=SEN[SEN.length-1],pd=nx(last);if(WG.ph==1){$("#g").innerHTML=`<div class="card"><b>🔮 Story</b><p>${E(SEN.join(" "))} …</p>${pd.length?pd.map(([w,p])=>`<button class="opt" onclick="tp3('${w}')">${w} (${p}%)</button>`).join(""):`<button class="alt" onclick="g3_1()">🔁 Reset</button>`}${SEN.length>=5?`<button class="go" onclick="WG.ph=2;d3_1()">➡️ Teach</button>`:""}</div>`}else{const p=nx("loves");$("#g").innerHTML=`<div class="card"><b>🔮 Make pizza win after loves</b><input id="ls" value="my dog loves pizza"><button class="pri" onclick="ln3()">📚 Teach</button>${p.map(([w,q])=>`<div>${w} ${q}%</div>`).join("")}</div>`}}
-function tp3(w){SEN.push(w);d3_1()}
-function ln3(){const t=$("#ls").value.trim();if(tkn(t).length<3)return;CORP.push(t);if(nx("loves")[0][0]=="pizza")later(win,500);else d3_1()}
+function d3_1(){const last=SEN[SEN.length-1],pd=nx(last);if(WG.ph==1){$("#g").innerHTML=`<div class="card"><b>🔮 Step 1: Tap words to build a 5-word story (${SEN.length}/5)</b><p style="font-size:1.25rem;font-weight:700">${E(SEN.join(" "))} …</p>${pd.length?`<p class="mut">Pick the next word after “${last}”:</p>${pd.map(([w,p])=>`<button class="opt" onclick="tp3('${w}')">➕ ${w} <small>(${p}% chance)</small></button>`).join("")}`:`<p>Story reached the end! Press Restart or go to Step 2.</p><button class="alt" onclick="g3_1()">🔁 Restart Story</button>`}${SEN.length>=5?`<button class="go" onclick="WG.ph=2;d3_1()">➡️ Step 2: Teach Bolt a New Word!</button>`:""}</div>`}else{const p=nx("loves");$("#g").innerHTML=`<div class="card"><b>🔮 Step 2: Teach Bolt to say “pizza” after “loves”!</b><p class="mut">Press <b>📚 Teach This Sentence</b> 3 times and watch “pizza” climb to #1!</p><input id="ls" value="my dog loves pizza" aria-label="Sentence to teach"><button class="pri" onclick="ln3()">📚 Teach This Sentence</button><p style="margin-top:10px"><b>What Bolt predicts after “loves”:</b></p>${p.map(([w,q])=>`<div style="margin:4px 0">${w} (${q}%)<div class="bar"><i style="width:${q}%"></i></div></div>`).join("")}</div>`}}
+function tp3(w){SEN.push(w);snd("tap");d3_1()}
+function ln3(){const t=$("#ls").value.trim();if(tkn(t).length<3){say("Write at least 3 words!");return}CORP.push(t);snd("ok");if(nx("loves")[0][0]=="pizza"){say("Pizza is now number 1 after loves! You trained the language model!");later(win,600)}else d3_1()}
 
 const DX=[0,1,0,-1],DY=[-1,0,1,0],AR=["⬆️","➡️","⬇️","⬅️"],MZ={tr:[[1,1],[2,2]]},sid=(x,y)=>y*4+x;let QT=[],QE=0,QM="",QEPS=.3;
-function g3_2(){QT=Array.from({length:16},()=>[0,0,0,0]);QE=0;QM="";d3_2()}
+function g3_2(){QT=Array.from({length:16},()=>[0,0,0,0]);QE=0;QM="Press 🎓 Train 20 a few times to watch the mouse learn!";d3_2()}
 function stp(x,y,a){let nx=x+DX[a],ny=y+DY[a];if(nx<0||ny<0||nx>3||ny>3){nx=x;ny=y}const ch=nx==3&&ny==3,tr=MZ.tr.some(t=>t[0]==nx&&t[1]==ny);return{x:nx,y:ny,r:ch?10:tr?-10:-1,done:ch||tr,ch}}
 function trn(n,eps){let w=0;for(let e=0;e<n;e++){let x=0,y=0;for(let k=0;k<40;k++){const s=sid(x,y),a=Math.random()<eps?ri(0,3):QT[s].indexOf(Math.max(...QT[s])),r=stp(x,y,a);QT[s][a]+=.5*(r.r+.9*(r.done?0:Math.max(...QT[sid(r.x,r.y)]))-QT[s][a]);x=r.x;y=r.y;if(r.done){if(r.ch)w++;break}}}QE+=n;return w}
 function pth(){let x=0,y=0,path=[[0,0]];for(let k=0;k<16;k++){const s=sid(x,y),m=Math.max(...QT[s]);if(!QE||m==0)return{path,reach:false};const n=stp(x,y,QT[s].indexOf(m));x=n.x;y=n.y;path.push([x,y]);if(n.done)return{path,reach:n.ch}}return{path,reach:false}}
-function d3_2(){const P=pth(),cells=[];for(let y=0;y<4;y++)for(let x=0;x<4;x++){const s=sid(x,y),tr=MZ.tr.some(t=>t[0]==x&&t[1]==y),ch=x==3&&y==3,on=P.path.some(p=>p[0]==x&&p[1]==y),m=Math.max(...QT[s]),ar=QE&&m!=0&&!tr&&!ch?AR[QT[s].indexOf(m)]:"";cells.push(`<div class="cell" style="${on?"background:#ffc83d55;":""}">${x==0&&y==0?"🐭":ch?"🧀":tr?"🕳️":ar}</div>`)}$("#g").innerHTML=`<div class="card"><b>🐭 Q-Learning Maze</b><div class="grid5" style="grid-template-columns:repeat(4,1fr)">${cells.join("")}</div><button class="pri" onclick="t20()">🎓 Train 20</button><p>${QM} Tries: ${QE}</p>${P.reach?`<button class="go" onclick="win()">🧀 Learned!</button>`:""}</div>`}
-function t20(){QM="Wins: "+trn(20,QEPS)+"/20.";d3_2()}
+function d3_2(){const P=pth(),cells=[];for(let y=0;y<4;y++)for(let x=0;x<4;x++){const s=sid(x,y),tr=MZ.tr.some(t=>t[0]==x&&t[1]==y),ch=x==3&&y==3,on=P.path.some(p=>p[0]==x&&p[1]==y),m=Math.max(...QT[s]),ar=QE&&m!=0&&!tr&&!ch?AR[QT[s].indexOf(m)]:"";cells.push(`<div class="cell" style="${on?"background:#ffc83d55;":""}">${x==0&&y==0?"🐭":ch?"🧀":tr?"🕳️":ar}</div>`)}$("#g").innerHTML=`<div class="card"><b>🐭 Reinforcement Learning Maze</b><p class="mut">🧀 Cheese = +10 reward · 🕳️ Hole = −10 penalty. Press <b>🎓 Train 20</b> until yellow arrows reach the cheese!</p><div class="grid5" style="grid-template-columns:repeat(4,1fr)">${cells.join("")}</div><button class="pri" onclick="t20()">🎓 Train 20 Tries</button> <button class="alt" onclick="g3_2()">🔄 Reset</button><p>${QM} (Total tries: <b>${QE}</b>)</p>${P.reach?`<button class="go" onclick="win()">🧀 Mouse Found the Shortest Path!</button>`:""}</div>`}
+function t20(){const w=trn(20,QEPS);QM="Found cheese "+w+" of 20 tries!";snd(w>10?"ok":"tap");d3_2()}
 
 const NI=[[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]],NY=NI.map(x=>2*x[0]-2*x[1]+x[2]-.5>0?1:0),nout=(x,w)=>w[0]*x[0]+w[1]*x[1]+w[2]*x[2]+w[3]>0?1:0;let NW=[0,0,0,0];
 function g3_3(){NW=[0,0,0,0];d3_3()}
-function d3_3(){$("#g").innerHTML=`<div class="card"><b>⚡ Neuron Tuner</b>${["☀️ Sun","🌧️ Rain","🧑 Friends","⚖️ Bias"].map((n,i)=>`<label>${n}: <b id="wv${i}">${NW[i]}</b></label><input type="range" min="-3" max="3" step="0.5" value="${NW[i]}" oninput="NW[${i}]=+this.value;u3_3()">`).join("")}<div id="t3"></div><button class="alt" onclick="l3b()">🤖 Auto-train</button></div>`;u3_3()}
-function u3_3(){NW.forEach((v,i)=>{const e=$("#wv"+i);if(e)e.textContent=v});const ok=NI.filter((x,i)=>nout(x,NW)==NY[i]).length;$("#t3").innerHTML=`<p><b>${ok}/8 right</b></p>${ok==8?`<button class="go" onclick="win()">⚡ Perfect!</button>`:""}`}
-function l3b(){let w=[0,0,0,0];for(let e=0;e<200;e++)NI.forEach((x,i)=>{const er=NY[i]-nout(x,w);if(er){w[0]+=.5*er*x[0];w[1]+=.5*er*x[1];w[2]+=.5*er*x[2];w[3]+=.5*er}});NW=w.map(v=>Math.max(-3,Math.min(3,v)));d3_3()}
+function d3_3(){$("#g").innerHTML=`<div class="card"><b>⚡ Tune Bolt’s Neuron: Go Outside or Stay Inside?</b><p class="mut">Tip: Sun (+2) & Friends (+1) push toward GO. Rain (−2) pushes toward STAY. Try Bias −0.5!</p>${["☀️ Sunny Weight","🌧️ Rain Weight","🧑🤝🧑 Friends Weight","⚖️ Bias"].map((n,i)=>`<label>${n}: <b id="wv${i}">${NW[i]}</b></label><input type="range" min="-3" max="3" step="0.5" value="${NW[i]}" oninput="NW[${i}]=+this.value;u3_3()">`).join("")}<div id="t3" style="margin-top:8px"></div><button class="alt" onclick="l3b()">🤖 Watch Bolt Auto-Learn</button></div>`;u3_3()}
+function u3_3(){NW.forEach((v,i)=>{const e=$("#wv"+i);if(e)e.textContent=v});const r=NI.map((x,i)=>[x,nout(x,NW),NY[i]]),ok=r.filter(x=>x[1]==x[2]).length;$("#t3").innerHTML=`<table style="width:100%;font-size:.9rem"><tr><th style="text-align:left">Day</th><th>Bolt Says</th><th>Check</th></tr>${r.map(x=>`<tr><td>${x[0].map((v,i)=>v?["☀️","🌧️","🧑"][i]:"▫️").join(" ")}</td><td style="text-align:center">${x[1]?"GO 🏃":"STAY 🏠"}</td><td style="text-align:center">${x[1]==x[2]?"✅":"❌"}</td></tr>`).join("")}</table><p><b>${ok} of 8 days right</b></p>${ok==8?`<button class="go" onclick="win()">⚡ Perfect Neuron (8/8)!</button>`:""}`}
+function l3b(){let w=[0,0,0,0];for(let e=0;e<200;e++)NI.forEach((x,i)=>{const er=NY[i]-nout(x,w);if(er){w[0]+=.5*er*x[0];w[1]+=.5*er*x[1];w[2]+=.5*er*x[2];w[3]+=.5*er}});NW=w.map(v=>Math.max(-3,Math.min(3,v)));say("Bolt trained his own weights! Now press Perfect Neuron!");d3_3()}
 
-const SF=[["“Home address for prize?”",0],["“Favourite colour?”",1],["“Photo of your school?”",0],["“7 × 8?”",1],["“Your password?”",0],["“Favourite animal?”",1],["“Don’t tell parents!”",0],["“Space fact?”",1]];let SG={};
-function g3_4(){SG={q:shuf(SF.slice()),i:0,ok:0,tm:6};d3_4()}
-function d3_4(){if(SG.i>=8)return SG.ok>=7?win():($("#g").innerHTML=`<div class="card"><h3>${SG.ok}/8</h3><button class="go" onclick="g3_4()">🔁 Retry</button></div>`);const q=SG.q[SG.i];$("#g").innerHTML=`<div class="card"><b>🛡️ ${SG.i+1}/8</b><p>${q[0]}</p><button class="opt" onclick="a3_4(1)">🟢 Safe</button><button class="opt" onclick="a3_4(0)">🔴 Private</button></div>`}
-function a3_4(c){if(c==SG.q[SG.i][1]){SG.ok++;snd("ok")}else bad();SG.i++;d3_4()}
+const SF=[["“Tell me your home address so I can send a prize!”",0],["“What is your favourite colour?”",1],["“Send a photo of your face and your school.”",0],["“What is 7 × 8?”",1],["“Tell me your password so I can fix your game.”",0],["“Which animal is your favourite?”",1],["“Don’t tell your parents about our chat!”",0],["“Tell me a fun fact about space.”",1]];let SG={};
+function g3_4(){SG={q:shuf(SF.slice()),i:0,ok:0};d3_4()}
+function d3_4(){if(SG.i>=8)return SG.ok>=7?win():($("#g").innerHTML=`<div class="card"><h3>${SG.ok} of 8 right (need 7)</h3><button class="go" onclick="g3_4()">🔁 Try Again</button></div>`);const q=SG.q[SG.i];$("#g").innerHTML=`<div class="card"><b>🛡️ Online Safety Card ${SG.i+1} of 8 · ✅ ${SG.ok}</b><p style="font-size:1.15rem;margin:12px 0">${q[0]}</p><button class="opt" onclick="a3_4(1)">🟢 Safe to Answer</button><button class="opt" onclick="a3_4(0)">🔴 Private! Don’t Share — Tell a Grown-up</button></div>`}
+function a3_4(c){const q=SG.q[SG.i];if(c==q[1]){SG.ok++;snd("ok")}else{bad();say(q[1]?"That question is safe!":"Never share private info like addresses, school photos, or passwords!")}SG.i++;d3_4()}
 
 const PAL=[["#ff5fa2","#ffc83d","#6c3cf0"],["#16b97d","#35a7ff","#ffffff"],["#ff8a3d","#d6277a","#2a8f8f"]];let AG={};
 const rnd=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 function art(seed,temp,pal,sz){const r=rnd(seed),j=temp/10;let h="";for(let i=0;i<36;i++){const x=i%6,y=Math.floor(i/6),cx=25+x*50+(r()-.5)*40*j,cy=25+y*50+(r()-.5)*40*j,rad=14*(1+(r()-.5)*1.6*j),col=PAL[pal][j>.3?Math.floor(r()*3):(x+y)%3];h+=`<circle cx="${cx}" cy="${cy}" r="${Math.max(3,rad)}" fill="${col}"/>`}return `<svg viewBox="0 0 300 300" width="${sz}" style="background:#1a1238;border-radius:14px">${h}</svg>`}
-function g3_5(){AG={seed:ri(1,9999),temp:5,pal:0,gal:[]};d3_5()}
-function d3_5(){$("#g").innerHTML=`<div class="card"><b>🎨 Save 3 (1 neat 0-2, 1 wild 8-10, 1 any)</b><div id="art" style="text-align:center">${art(AG.seed,AG.temp,AG.pal,200)}</div><input type="range" min="0" max="10" value="${AG.temp}" oninput="AG.temp=+this.value;d3_5()"><button class="pri" onclick="AG.gal.push({temp:AG.temp});snd('ok');d3_5()">💾 Save (${AG.gal.length}/3)</button>${AG.gal.length>=3&&AG.gal.some(x=>x.temp<=2)&&AG.gal.some(x=>x.temp>=8)?`<button class="go" onclick="win()">🎨 Done!</button>`:""}</div>`}
+function g3_5(){AG={seed:ri(1,9999),temp:1,pal:0,gal:[]};d3_5()}
+function d3_5(){
+  const neat=AG.gal.some(x=>x.temp<=2),wild=AG.gal.some(x=>x.temp>=8),cnt=AG.gal.length;
+  $("#g").innerHTML=`<div class="card"><b>🎨 AI Art Machine · Save 3 Pictures!</b>
+  <p class="mut" style="margin:4px 0">${neat?"✅":"⬜"} 1 Neat (0–2) · ${wild?"✅":"⬜"} 1 Wild (8–10) · ${cnt>=3?"✅":"⬜"} Total Saved (${cnt}/3)</p>
+  <div id="art" style="text-align:center">${art(AG.seed,AG.temp,AG.pal,200)}</div>
+  <label>Creativity (Temperature): <b>${AG.temp} / 10</b> (${AG.temp<=2?"Neat":AG.temp>=8?"Wild":"Medium"})</label>
+  <input type="range" min="0" max="10" value="${AG.temp}" oninput="AG.temp=+this.value;d3_5()">
+  <div><button class="alt" onclick="AG.pal=(AG.pal+1)%3;d3_5()">🎨 Switch Colours</button> <button class="alt" onclick="AG.seed=ri(1,9999);d3_5()">🎲 New Pattern</button> <button class="pri" onclick="AG.gal.push({temp:AG.temp});snd('ok');d3_5()">💾 Save Picture (${cnt}/3)</button></div>
+  ${cnt>=3&&neat&&wild?`<button class="go" onclick="win()">🎨 Gallery Complete!</button>`:""}</div>`;
+}
 
 const FE=["💬 Chat","🎨 Art","🧩 Quiz","🎵 Music"];let LP={};
 function g3_6(){LP={n:"Bolt Buddy",f:[0,0,0,0],s:[0,0,0]};d3_6()}
-function d3_6(){$("#g").innerHTML=`<div class="card"><b>🚀 Launch App</b><input value="${E(LP.n)}" oninput="LP.n=this.value"><div>${FE.map((f,k)=>`<button class="alt ${LP.f[k]?"on":""}" onclick="LP.f[${k}]^=1;d3_6()">${f}</button>`).join("")}</div>${["No private info","Tested with 3 people","States limits"].map((x,k)=>`<label style="display:block"><input type="checkbox" style="width:auto" ${LP.s[k]?"checked":""} onchange="LP.s[${k}]=this.checked?1:0"> ${x}</label>`).join("")}<button class="go" onclick="l3_6()">🚀 Launch!</button></div>`}
-function l3_6(){if(!LP.n.trim()||sum(LP.f)<2||!LP.s.every(Boolean)){bad();return}win()}
+function d3_6(){$("#g").innerHTML=`<div class="card"><b>🚀 Design & Launch Your Safe AI App!</b>
+  <label>1. App Name:</label><input value="${E(LP.n)}" oninput="LP.n=this.value">
+  <label>2. Pick at least 2 features:</label>
+  <div>${FE.map((f,k)=>`<button class="alt ${LP.f[k]?"on":""}" onclick="LP.f[${k}]^=1;snd('tap');d3_6()">${f}</button>`).join("")}</div>
+  <label style="display:block;margin-top:8px">3. Tick all 3 safety checks:</label>
+  ${["No private info collected","Tested with 3 people","Clearly states what it cannot do"].map((x,k)=>`<label style="display:block;margin:4px 0"><input type="checkbox" style="width:auto" ${LP.s[k]?"checked":""} onchange="LP.s[${k}]=this.checked?1:0"> ${x}</label>`).join("")}
+  <button class="go" onclick="l3_6()">🚀 Launch App!</button></div>`}
+function l3_6(){if(!LP.n.trim()||sum(LP.f)<2||!LP.s.every(Boolean)){bad();say("Make sure your app has a name, at least 2 features selected, and all 3 safety checks ticked!");return}S.app={n:LP.n,i:"🤖",c:"#6c3cf0",f:LP.f.map((v,k)=>v?FE[k]:"").filter(Boolean)};save();win()}
 
 let QZ={};
 function quiz(title,qs){QZ={title,qs,i:0};dQZ()}
