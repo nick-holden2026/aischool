@@ -116,6 +116,13 @@ small,.mut{color:var(--mut)}
 canvas.gm{width:100%;max-width:520px;height:240px;background:#06090f;border-radius:12px;border:2px solid var(--p);display:block;margin:8px auto;touch-action:none}
 .tag{display:inline-block;background:var(--y);color:#09090b;border-radius:99px;padding:2px 8px;font-size:.7rem;font-weight:700;margin-left:6px;vertical-align:middle}
 .era-hdr{font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--p);margin:16px 0 6px}
+
+.helpfab{position:fixed;right:14px;bottom:74px;z-index:35;background:linear-gradient(135deg,var(--p),var(--pk));color:#fff;border-radius:99px;padding:9px 14px;font-weight:700;font-size:.92rem;box-shadow:0 6px 20px #0004;display:flex;align-items:center;gap:6px;border:2px solid var(--y)}
+:root[data-era="8"] .helpfab{color:#09090b}
+#hmod{position:fixed;inset:0;z-index:65;background:#0008;display:none;place-items:center;padding:16px}
+#hmod.open{display:grid}
+.hcard{background:var(--card);color:var(--ink);border:3px solid var(--p);border-radius:var(--rad);max-width:460px;width:100%;padding:18px;box-shadow:0 12px 36px #0006}
+.hstep{background:color-mix(in srgb,var(--p) 12%,transparent);border-left:4px solid var(--p);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:.95rem}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 @media print{.tabs,.top,.bd,.noprint,#wl,.chbar{display:none!important}body{background:#fff;color:#000}}
 </style></head><body>
@@ -127,6 +134,8 @@ canvas.gm{width:100%;max-width:520px;height:240px;background:#06090f;border-radi
   <main id="main"></main>
 </div>
 <nav class="tabs" id="tabs"></nav>
+<button class="helpfab noprint" id="hfab" onclick="openHelp()" aria-label="Ask Bruno or Misty for help">🐶 Ask Bruno</button>
+<div id="hmod" onclick="if(event.target.id=='hmod')closeHelp()"><div class="hcard" id="hbody"></div></div>
 <div id="wl"><div>
   <div style="font-size:3.6rem">🤖💻🧠🚀</div>
   <h1 id="wh" style="margin:6px 0">Hi Reyah!</h1>
@@ -159,8 +168,35 @@ const save=()=>{try{localStorage.setItem("aa3_30v4",JSON.stringify(S))}catch(e){
 let AC;try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
 function snd(t){if(S.mute||!AC)return;try{AC.resume();({ok:[523,659,784],bad:[250,190],up:[523,659,784,1047,1319],tap:[620],coin:[880,1175]}[t]||[500]).forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=t=="bad"?"sawtooth":"triangle";o.frequency.value=f;g.gain.value=.07;o.connect(g);g.connect(AC.destination);const s=AC.currentTime+i*.09;o.start(s);g.gain.exponentialRampToValueAtTime(.001,s+.17);o.stop(s+.19)})}catch(e){}}
 function playFreq(f){if(S.mute||!AC)return;try{AC.resume();const o=AC.createOscillator(),g=AC.createGain();o.type="sine";o.frequency.value=f;g.gain.value=.08;o.connect(g);g.connect(AC.destination);const s=AC.currentTime;o.start(s);g.gain.exponentialRampToValueAtTime(.001,s+.3);o.stop(s+.33)}catch(e){}}
-let LAST="";
-function say(t){LAST=t;const b=$("#bub");if(b)b.textContent=t;if(S.mute||!window.speechSynthesis||curEra()>=3)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.pitch=S.pet=="cat"?1.7:.7;u.lang="en-US";speechSynthesis.speak(u)}catch(e){}}
+let LAST="",SPK_T=null,CUR_UTT=null;
+const SD=()=>S.pet=="cat"?"Meow meow!":"Woof woof!";
+function pickVoice(){
+  try{const vs=window.speechSynthesis.getVoices()||[];return vs.find(v=>/en[-_]US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||vs[0]||null;}catch(e){return null;}
+}
+function say(t){
+  if(t==null)return;
+  LAST=String(t);
+  const b=$("#bub");if(b)b.textContent=LAST;
+  if(S.mute||!window.speechSynthesis)return;
+  try{
+    clearTimeout(SPK_T);
+    const clean=LAST.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,"").trim();
+    if(!clean)return;
+    window.speechSynthesis.cancel();
+    SPK_T=setTimeout(()=>{
+      try{
+        if(window.speechSynthesis.paused)window.speechSynthesis.resume();
+        const u=new SpeechSynthesisUtterance(clean);
+        const v=pickVoice();if(v)u.voice=v;
+        u.lang="en-US";
+        u.rate=curEra()>=3?1.02:0.96;
+        u.pitch=curEra()<=2?(S.pet=="cat"?1.55:0.8):1.0;
+        CUR_UTT=u;
+        window.speechSynthesis.speak(u);
+      }catch(e){}
+    },45);
+  }catch(e){}
+}
 function confetti(){if(curEra()>=5)return;["🎉","⭐","✨","🎈"].forEach(c=>{for(let i=0;i<3;i++){const d=document.createElement("div");d.className="cf";d.textContent=c;d.style.left=Math.random()*95+"vw";d.style.animationDelay=Math.random()*.5+"s";document.body.appendChild(d);setTimeout(()=>d.remove(),2800)}})}
 
 const ERAS={
@@ -175,7 +211,8 @@ const ERAS={
 };
 const curEra=()=>S.ch<=5?1:S.ch<=8?2:S.ch<=12?3:S.ch<=16?4:S.ch<=20?5:S.ch<=23?6:S.ch<=27?7:8;
 function applyEra(){const e=curEra();document.documentElement.setAttribute("data-era",String(e));$("#brand").textContent=ERAS[e].brand;$("#erab").textContent=ERAS[e].name;}
-const buddy=()=>`<div class="bd"><div class="bud" onclick="say(LAST)" role="button" aria-label="Mentor note">${ERAS[curEra()].icon()}</div><div class="bub" id="bub" aria-live="polite"></div></div>`;
+const PE=()=>S.pet=="cat"?"🐱":"🐶",PN=()=>S.pet=="cat"?"Misty":"Bruno";
+const buddy=()=>`<div class="bd"><div class="bud" onclick="openHelp()" role="button" title="Tap for help!" aria-label="Ask ${PN()} for help">${PE()}</div><div class="bub" id="bub" aria-live="polite"></div></div>`;
 
 /* ===== 28 CHAPTERS ACROSS 8 MATURING ERAS (Ch 3 to Ch 30) ===== */
 const CHS=[
@@ -562,18 +599,18 @@ const stars=()=>sum(Object.values(S.st));
 const totalUpgrades=()=>CHS.reduce((a,c)=>a+c.ms.length,0);
 const doneUpgrades=()=>CHS.reduce((a,c)=>a+c.ms.filter(m=>S.w[m.id]).length,0);
 
-let V="map",C=null,mis=0,EX={},GYM={};
+let V="map",M_MODE="map",C=null,mis=0,EX={},GYM={};
 
 function hdr(){
   applyEra();
   $("#st").textContent=`Ch ${S.ch}/30 · ⭐ ${stars()} · 🪙 ${S.coins}`;
-  $("#mu").textContent=S.mute?"🔇":"🔊";
+  $("#mu").textContent=S.mute?"🔇":"🔊";const hf=$("#hfab");if(hf)hf.textContent=PE()+" Help ("+PN()+")";
   const tabList=[["map","🗺️ Quest"],["chs","📖 8 Eras"],["gym","♾️ Gym"],["shop",curEra()<=2?"🛍️ Workshop":"⚙️ Profile"],["tro","🏆 Diploma"]];
   $("#tabs").innerHTML=tabList.map(t=>`<button class="${V==t[0]?"on":""}" onclick="go('${t[0]}')">${t[1]}</button>`).join("");
 }
 function show(h,t){stopLoops();$("#main").innerHTML=h;hdr();window.scrollTo(0,0);if(t)say(t)}
 function go(v){V=v;snd("tap");({map,chs,gym,shop,tro})[v]()}
-function init(p){S.pet=p;save();$("#wl").style.display="none";snd("up");V="map";map("Hi "+S.name+"! Pass each chapter and its exam to evolve through all 8 Eras (Chapters 3–30)!")}
+function init(p){S.pet=p;save();$("#wl").style.display="none";if(window.speechSynthesis)try{window.speechSynthesis.getVoices()}catch(e){}snd("up");V="map";map(SD()+" Hi "+S.name+"! Pass each chapter and its exam to evolve through all 8 Eras, from Explorer to Chief AI Architect!")}
 function selCh(n){
   if(!chUnlocked(n)){snd("bad");say("Complete Chapter "+(n-1)+" and pass its exam first to unlock Chapter "+n+"!");return}
   S.ch=n;save();V="map";snd("tap");map(`Chapter ${n}: ${chObj(n).t}`);
@@ -583,7 +620,7 @@ const boltBig=()=>`<div class="bb"><span class="hat">${S.hat||""}</span><span st
 const boltRow=()=>`<div class="bolt">${chObj(S.ch).ms.map(m=>`<span class="${S.w[m.id]?"":"no"}">${S.w[m.id]?m.e:"❓"}</span>`).join("")}</div>`;
 const chBar=()=>`<div class="chbar">${CHS.map(c=>{const un=chUnlocked(c.n),dn=chComplete(c.n),on=S.ch==c.n;return `<button class="chpill ${on?"on":""} ${dn?"dn":""} ${un?"":"lk"}" onclick="selCh(${c.n})">${un?(dn?"✅ ":"")+c.n:"🔒"+c.n}</button>`}).join("")}</div>`;
 
-function map(t){
+function map(t){M_MODE="map";
   const c=chObj(S.ch);
   let h=chBar()+buddy()+boltBig()+`<div style="text-align:center;margin-bottom:6px"><h2 style="margin:2px 0">Chapter ${c.n}: ${E(c.t)}</h2><small>${E(c.desc)}</small></div>`+boltRow();
   c.ms.forEach((m,i)=>{
@@ -601,7 +638,7 @@ function map(t){
   show(h,typeof t=="string"?t:`Chapter ${c.n}: ${c.t}`);
 }
 
-function chs(){
+function chs(){M_MODE="chs";
   let h=buddy()+`<h2 style="margin:4px 0">📖 8-Era Mastery Roadmap (Chapters 3–30)</h2><p class="mut">Pass each chapter’s exam to unlock the next. Every Era upgrades the visual UI and intellectual depth!</p>`;
   [1,2,3,4,5,6,7,8].forEach(era=>{
     h+=`<div class="era-hdr">${ERAS[era].name}</div>`;
@@ -617,7 +654,7 @@ function chs(){
 }
 
 /* ===== INFINITE MASTERY GYM ===== */
-function gym(){
+function gym(){M_MODE="gym";
   const maxCh=Math.max(...CHS.filter(c=>chUnlocked(c.n)).map(c=>c.n));
   const pool=["bin","ai"];
   if(maxCh>=7)pool.push("gate");
@@ -637,17 +674,55 @@ function gym(){
   else{const p=pk([["High train acc + low test acc signals:",["Overfitting","Binary search","Quantization"],"Train/test gap = overfitting."],["Which mechanism links pronouns in Transformers?",["Self-Attention","Bubble Sort","HTTP 404"],"Self-Attention weights context links."]]);GYM={q:p[0],a:p[1][0],opts:shuf(p[1]),why:p[2]};}
   show(buddy()+`<div class="card"><b>♾️ Infinite Mastery Gym · Solved: ${S.gymWon}</b><p class="mut">Unlimited procedural drills scaling from Era 1 through Era 8!</p><h3 style="margin:10px 0">${GYM.q}</h3><div id="gopts">${GYM.opts.map((o,i)=>`<button class="opt" onclick="ansGym(${i})">${E(o)}</button>`).join("")}</div><div id="gfb"></div></div>`,"Infinite Mastery Gym!");
 }
-function ansGym(i){const ok=GYM.opts[i]==GYM.a;[...document.querySelectorAll("#gopts .opt")].forEach((b,idx)=>{b.disabled=true;if(GYM.opts[idx]==GYM.a)b.classList.add("ok");else if(idx==i)b.classList.add("no")});if(ok){S.gymWon++;S.coins+=5;save();snd("ok");hdr();}else snd("bad");$("#gfb").innerHTML=`<div class="ex-fb ${ok?"ok":"no"}">${ok?"✅ Correct! +5 🪙":"❌ Review:"} ${E(GYM.why)}</div><button class="go" onclick="gym()">Next Endless Drill ➜</button>`;}
+function ansGym(i){const ok=GYM.opts[i]==GYM.a;[...document.querySelectorAll("#gopts .opt")].forEach((b,idx)=>{b.disabled=true;if(GYM.opts[idx]==GYM.a)b.classList.add("ok");else if(idx==i)b.classList.add("no")});if(ok){S.gymWon++;S.coins+=5;save();snd("ok");hdr();}else snd("bad");$("#gfb").innerHTML=`<div class="ex-fb ${ok?"ok":"no"}">${ok?"✅ Correct! +5 🪙":"❌ Review:"} ${E(GYM.why)}</div><button class="go" onclick="gym()">Next Endless Drill ➜</button>`;say((ok?"Correct! ":"Good try! ")+GYM.why);}
 
 function findM(id){for(const c of CHS){const m=c.ms.find(x=>x.id==id);if(m)return{c,m}}return null}
-function start(id){const f=findM(id);if(!f)return;C=f.m;mis=0;show(buddy()+`<div class="card" style="text-align:center"><div class="big">${C.e}</div><h2 style="margin:0">${E(C.t)}</h2><p>${E(C.s)}</p></div><button class="go" onclick="play()">Start ➜</button><button class="alt" onclick="go('map')">⬅ Back</button>`,C.s)}
-function play(){mis=0;show(buddy()+`<div id="g"></div><div id="aid" style="margin-top:10px"><button class="alt" onclick="hint()">💡 Hint</button> <button class="alt" onclick="go('map')">⬅ Map</button></div>`,C.t);window[C.fn]()}
-function hint(){say(C.h)}
+function start(id){M_MODE="start";const f=findM(id);if(!f)return;C=f.m;mis=0;show(buddy()+`<div class="card" style="text-align:center"><div class="big">${C.e}</div><h2 style="margin:0">${E(C.t)}</h2><p>${E(C.s)}</p></div><button class="go" onclick="play()">Start ➜</button><button class="alt" onclick="go('map')">⬅ Back</button>`,C.s)}
+function play(){M_MODE="play";mis=0;show(buddy()+`<div id="g"></div><div id="aid" style="margin-top:10px"><button class="alt" onclick="hint()">💡 Hint</button> <button class="alt" onclick="go('map')">⬅ Map</button></div>`,C.t);window[C.fn]()}
+function hint(){openHelp()}
+function closeHelp(){const m=$("#hmod");if(m)m.classList.remove("open")}
+function openHelp(){
+  let title=PE()+" "+PN()+"’s Guide",what="",steps="";
+  if((M_MODE=="play"||M_MODE=="start")&&C){
+    title=PE()+" "+PN()+" helps with: "+C.t;
+    what=C.s;
+    steps=C.h;
+  }else if(M_MODE=="exam"){
+    const c=chObj(EX.n||S.ch);
+    title=PE()+" "+PN()+"’s Exam Coach (Ch "+c.n+")";
+    what="You’re taking the Chapter "+c.n+" Exam! Pass "+c.passNeed+" of "+c.exam.length+" questions to unlock the next chapter.";
+    steps="Read each question slowly, rule out silly choices first, and remember what you built in this chapter’s modules!";
+  }else if(M_MODE=="boss"){
+    title=PE()+" "+PN()+"’s Boss Battle Tips";
+    what="Answer correctly to reduce the Boss’s health bar before your 3 hearts run out!";
+    steps="Think back to the chapter’s main lessons. If you lose, you can retry right away with zero penalty!";
+  }else if(M_MODE=="gym"){
+    title=PE()+" "+PN()+"’s Infinite Gym Guide";
+    what="The Gym gives unlimited practice drills across Binary, Logic Gates, JavaScript, AI Math, and Algorithms.";
+    steps="For binary, add the 8-4-2-1 bits that are 1. For dot products, multiply matching pairs and add. Every right answer earns +5 coins!";
+  }else{
+    const c=chObj(S.ch),nextM=c.ms.find(m=>!S.w[m.id]);
+    title=PE()+" "+PN()+"’s Next Step Guide";
+    what="You are on Chapter "+c.n+": "+c.t+".";
+    steps=nextM?"Tap the glowing module “"+nextM.t+"” to play next! Finish every module and pass the Chapter "+c.n+" Exam to unlock Chapter "+(c.n+1)+".":"All modules in Chapter "+c.n+" are done! Tap the Boss or Chapter "+c.n+" Exam below to unlock the next chapter!";
+  }
+  const spoken=SD()+" "+PN()+" here! "+what+" Here is how to do it: "+steps;
+  const hb=$("#hbody");
+  if(hb)hb.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">${E(title)}</h3><button class="alt" style="margin:0;padding:4px 10px" onclick="closeHelp()" aria-label="Close help">✖</button></div>
+  <div class="hstep"><b>🎯 What this task is about:</b><br>${E(what)}</div>
+  <div class="hstep"><b>💡 How to complete it step-by-step:</b><br>${E(steps)}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <button class="pri" onclick="say(${JSON.stringify(spoken)})">🔊 Hear ${PN()} Explain</button>
+    <button class="alt" onclick="closeHelp()">👍 Got it!</button>
+  </div>`;
+  const hm=$("#hmod");if(hm)hm.classList.add("open");
+  say(spoken);
+}
 function bad(){mis++;snd("bad");if(mis>=5&&!$("#skip"))$("#aid").insertAdjacentHTML("beforeend",`<button class="alt" id="skip" onclick="win(1)">⏭️ Skip</button>`)}
 function pop(t){const d=document.createElement("div");d.textContent=t;d.className="pp";document.body.appendChild(d);setTimeout(()=>d.remove(),1300)}
 function win(forced){stopLoops();const k=forced?1:mis<=1?3:mis<=3?2:1,gain=10*k+ri(5,20);S.w[C.id]=1;S.st[C.id]=Math.max(S.st[C.id]||0,k);S.coins+=gain;save();snd("up");confetti();show(buddy()+`<div class="card" style="text-align:center"><div class="big dance">${C.e}</div><h2 style="margin:0">Completed: ${E(C.t)}</h2><p style="font-size:1.6rem">${"⭐".repeat(k)}${"☆".repeat(3-k)}</p><p>🪙 +${gain} coins</p></div><button class="go" onclick="go('map')">Continue ➜</button>`,"Well done, "+S.name+"!");}
 
-function startExam(n){const c=chObj(n);EX={n,i:0,ok:0,ans:[],qs:c.exam.map(q=>({q:q.q,why:q.why,opts:shuf(q.o.map((t,idx)=>({t,ok:idx==0})))}))};renderExam()}
+function startExam(n){M_MODE="exam";const c=chObj(n);EX={n,i:0,ok:0,ans:[],qs:c.exam.map(q=>({q:q.q,why:q.why,opts:shuf(q.o.map((t,idx)=>({t,ok:idx==0})))}))};renderExam()}
 function renderExam(){
   const c=chObj(EX.n);
   if(EX.i>=EX.qs.length){
@@ -655,23 +730,23 @@ function renderExam(){
     if(pass){S.ex[c.n]={sc:EX.ok,tot:EX.qs.length};if(first){S.coins+=40;if(c.n<30)S.ch=c.n+1;}save();snd("up");confetti();}else snd("bad");
     const rev=EX.ans.map((a,i)=>`<div class="ex-fb ${a.ok?"ok":"no"}"><b>Q${i+1}:</b> ${E(a.q)}<br><small>${a.ok?"✅":"❌"} ${E(a.why)}</small></div>`).join("");
     let nxt=pass?(c.n<30?`<button class="go" onclick="S.ch=${c.n+1};save();go('map')">🚀 Unlock Chapter ${c.n+1} ➜</button>`:`<button class="go" onclick="go('tro')">👑 View Lifetime Master Diploma ➜</button>`):`<button class="go" onclick="startExam(${c.n})">🔁 Retake Exam</button>`;
-    return show(buddy()+`<div class="card" style="text-align:center"><div class="big">${pass?"🎓✨":"📝"}</div><h2>${pass?`Chapter ${c.n} Passed!`:`Score ${EX.ok}/${EX.qs.length}`}</h2><p>Required: ${c.passNeed}/${EX.qs.length} ${first?"· 🪙 +40 Bonus!":""}</p></div><div class="card"><b>📚 Mastery Review</b>${rev}</div>${nxt}<button class="alt" onclick="go('map')">⬅ Map</button>`);
+    return show(buddy()+`<div class="card" style="text-align:center"><div class="big">${pass?"🎓✨":"📝"}</div><h2>${pass?`Chapter ${c.n} Passed!`:`Score ${EX.ok}/${EX.qs.length}`}</h2><p>Required: ${c.passNeed}/${EX.qs.length} ${first?"· 🪙 +40 Bonus!":""}</p></div><div class="card"><b>📚 Mastery Review</b>${rev}</div>${nxt}<button class="alt" onclick="go('map')">⬅ Map</button>`,pass?`Awesome job ${S.name}! You passed Chapter ${c.n} with ${EX.ok} out of ${EX.qs.length}!`:`You scored ${EX.ok} out of ${EX.qs.length}. Review the explanations and try again!`);
   }
   const q=EX.qs[EX.i];
   show(buddy()+`<div class="card"><b>📝 Ch ${c.n} Exam · Q${EX.i+1}/${EX.qs.length}</b><div class="bar" style="margin:8px 0"><i style="width:${EX.i/EX.qs.length*100}%"></i></div><h3>${E(q.q)}</h3><div id="exopts">${q.opts.map((o,i)=>`<button class="opt" onclick="pickExam(${i})">${E(o.t)}</button>`).join("")}</div><div id="exfb"></div></div>`,q.q);
 }
-function pickExam(idx){const q=EX.qs[EX.i],ch=q.opts[idx];[...document.querySelectorAll("#exopts .opt")].forEach((b,i)=>{b.disabled=true;if(q.opts[i].ok)b.classList.add("ok");else if(i==idx)b.classList.add("no")});if(ch.ok){EX.ok++;snd("ok")}else snd("bad");EX.ans.push({q:q.q,ok:ch.ok,why:q.why});$("#exfb").innerHTML=`<div class="ex-fb ${ch.ok?"ok":"no"}">${ch.ok?"✅ Correct!":"❌ Review:"} ${E(q.why)}</div><button class="go" onclick="EX.i++;renderExam()">Next ➜</button>`;}
+function pickExam(idx){const q=EX.qs[EX.i],ch=q.opts[idx];[...document.querySelectorAll("#exopts .opt")].forEach((b,i)=>{b.disabled=true;if(q.opts[i].ok)b.classList.add("ok");else if(i==idx)b.classList.add("no")});if(ch.ok){EX.ok++;snd("ok")}else snd("bad");EX.ans.push({q:q.q,ok:ch.ok,why:q.why});$("#exfb").innerHTML=`<div class="ex-fb ${ch.ok?"ok":"no"}">${ch.ok?"✅ Correct!":"❌ Review:"} ${E(q.why)}</div><button class="go" onclick="EX.i++;renderExam()">Next ➜</button>`;say((ch.ok?"Spot on! ":"Not quite. ")+q.why);}
 
 const HATS=[["🎩",20],["👑",50],["🧢",15],["🎓",30],["🎀",15],["⛑️",25],["🕶️",35],["🚀",45]],HUES=[[0,"Classic",0],[60,"Sunny",10],[120,"Mint",10],[200,"Ocean",10],[280,"Grape",10],[330,"Berry",10]];
-function shop(){show(buddy()+boltBig()+`<div class="card"><h3>👤 Student Profile</h3><input value="${E(S.name)}" maxlength="18" onchange="S.name=this.value||'Reyah';save();shop()"><button class="alt" onclick="S.pet=S.pet=='dog'?'cat':'dog';save();shop()">🔁 Switch Buddy</button></div><div class="card"><h3>🎩 Bolt Workshop (${S.coins} 🪙)</h3><div class="g">${HATS.map(([e,c])=>`<button class="t ${S.hat==e?"on":""}" onclick="hat('${e}',${c})"><span>${e}</span>${S.hat==e?"Wearing":S.hats.includes(e)?"Wear":"🪙 "+c}</button>`).join("")}</div></div><div class="card"><h3>🎨 Colour</h3><div class="g">${HUES.map(([h,n,c])=>`<button class="t ${S.hue==h?"on":""}" onclick="hue(${h},${c})"><span style="filter:hue-rotate(${h}deg)">🤖</span>${n}<br>${S.hues.includes(h)?(S.hue==h?"On":"Use"):"🪙 "+c}</button>`).join("")}</div></div>`)}
+function shop(){M_MODE="shop";show(buddy()+boltBig()+`<div class="card"><h3>👤 Student Profile</h3><input value="${E(S.name)}" maxlength="18" onchange="S.name=this.value||'Reyah';save();shop()"><button class="alt" onclick="S.pet=S.pet=='dog'?'cat':'dog';save();shop()">🔁 Switch Buddy</button></div><div class="card"><h3>🎩 Bolt Workshop (${S.coins} 🪙)</h3><div class="g">${HATS.map(([e,c])=>`<button class="t ${S.hat==e?"on":""}" onclick="hat('${e}',${c})"><span>${e}</span>${S.hat==e?"Wearing":S.hats.includes(e)?"Wear":"🪙 "+c}</button>`).join("")}<button class="t" onclick="hat('',0)"><span>🚫</span>None</button></div></div><div class="card"><h3>🎨 Colour</h3><div class="g">${HUES.map(([h,n,c])=>`<button class="t ${S.hue==h?"on":""}" onclick="hue(${h},${c})"><span style="filter:hue-rotate(${h}deg)">🤖</span>${n}<br>${S.hues.includes(h)?(S.hue==h?"On":"Use"):"🪙 "+c}</button>`).join("")}</div></div>`,"Welcome to your Workshop, "+S.name+"! You have "+S.coins+" coins.")}
 function hat(e,c){if(e&&!S.hats.includes(e)){if(S.coins<c){snd("bad");return}S.coins-=c;S.hats.push(e)}S.hat=e;save();snd("ok");shop()}
 function hue(h,c){if(!S.hues.includes(h)){if(S.coins<c){snd("bad");return}S.coins-=c;S.hues.push(h)}S.hue=h;save();snd("ok");shop()}
 
-function tro(){
+function tro(){M_MODE="tro";
   const grand=!!S.ex[30];
   show(buddy()+`<div class="card" style="text-align:center"><h2 style="margin:0">${E(S.name)}</h2><p>⭐ ${stars()} · 🪙 ${S.coins} · ${doneUpgrades()}/${totalUpgrades()} modules · ${allDoneCount()}/28 chapters · ♾️ ${S.gymWon} Gym</p></div>
   <div class="card"><b>🏅 8-Era Mastery Badges (Ch 3–30)</b><div class="g" style="margin-top:8px">${CHS.map(c=>`<div class="t ${chComplete(c.n)?"on":""}"><span>${c.e}</span>Ch ${c.n}</div>`).join("")}</div></div>`
-  +(grand?`<div class="card" style="text-align:center;border:5px double var(--y)"><div style="font-size:3.5rem">👑🎓</div><h2>Lifetime Computer & AI Architect Diploma</h2><p>Awarded to</p><h1>${E(S.name)}</h1><p>for completing all 8 Eras (Chapters 3–30): Computer Science, JavaScript, Python, Linear Algebra, Probability, Calculus, Transformers & LLMs, Game Engines, Systems Security, MLOps, and Life Skills.</p><button class="pri noprint" onclick="window.print()">🖨️ Print Diploma</button></div>`:`<p style="text-align:center" class="mut">Complete through Chapter 30 Exam to earn your Lifetime Master Diploma!</p>`));
+  +(grand?`<div class="card" style="text-align:center;border:5px double var(--y)"><div style="font-size:3.5rem">👑🎓</div><h2>Lifetime Computer & AI Architect Diploma</h2><p>Awarded to</p><h1>${E(S.name)}</h1><p>for completing all 8 Eras (Chapters 3–30): Computer Science, JavaScript, Python, Linear Algebra, Probability, Calculus, Transformers & LLMs, Game Engines, Systems Security, MLOps, and Life Skills.</p><button class="pri noprint" onclick="window.print()">🖨️ Print Diploma</button></div>`:`<p style="text-align:center" class="mut">Complete through Chapter 30 Exam to earn your Lifetime Master Diploma!</p>`),grand?"Congratulations "+S.name+", you earned the Lifetime Computer and AI Architect Diploma!":"You have completed "+allDoneCount()+" of 28 chapters, "+S.name+"! Keep leveling up!");
 }
 
 /* ================= SHARED & ERA 1-4 MODULES ================= */
@@ -729,14 +804,14 @@ function aQZ(k){if(k==QZ.qs[QZ.i][2]){QZ.i++;snd("ok");dQZ()}else bad()}
 function g3_7(){quiz("🌱 Calm Debugger",[["Game character falls through floor!",["Check gravity clues calmly!","Quit coding"],0],["Scored 3/6 on quiz.",["Review & retry","Hide it"],0],["Friend built a faster robot.",["Ask & learn together!","Be jealous"],0]])}
 
 let BS={};
-function boss3(){BS={i:0,hp:6,hearts:3,qs:CHS[0].exam.map(x=>[x.q,x.o]),k:"boss"};bq()}
-function boss16(){BS={i:0,hp:6,hearts:3,qs:CHS.find(c=>c.n==16).exam.map(x=>[x.q,x.o]),k:"boss16"};bq()}
-function boss30(){BS={i:0,hp:8,hearts:3,qs:CHS.find(c=>c.n==30).exam.map(x=>[x.q,x.o]),k:"boss30"};bq()}
-function bq(){
-  if(BS.hp<=0){S[BS.k]=1;S.coins+=50;save();snd("up");confetti();return show(buddy()+`<div class="card" style="text-align:center"><div class="big dance">🏆</div><h2>Boss Defeated! +50 🪙</h2><button class="go" onclick="go('map')">Take Chapter Exam ➜</button></div>`)}
-  if(BS.hearts<=0)return show(buddy()+`<div class="card" style="text-align:center"><h2>Try again!</h2><button class="go" onclick="go('map')">Back to Map</button></div>`);
+function boss3(){BS={i:0,hp:6,maxHp:6,hearts:3,qs:CHS[0].exam.map(x=>[x.q,x.o]),k:"boss",fn:"boss3",ic:"👾"};bq()}
+function boss16(){BS={i:0,hp:6,maxHp:6,hearts:3,qs:CHS.find(c=>c.n==16).exam.map(x=>[x.q,x.o]),k:"boss16",fn:"boss16",ic:"🐉"};bq()}
+function boss30(){BS={i:0,hp:8,maxHp:8,hearts:3,qs:CHS.find(c=>c.n==30).exam.map(x=>[x.q,x.o]),k:"boss30",fn:"boss30",ic:"👑"};bq()}
+function bq(){M_MODE="boss";
+  if(BS.hp<=0){S[BS.k]=1;S.coins+=50;save();snd("up");confetti();return show(buddy()+`<div class="card" style="text-align:center"><div class="big dance">🏆</div><h2>Boss Defeated! +50 🪙</h2><button class="go" onclick="go('map')">Take Chapter Exam ➜</button></div>`,"Hooray "+S.name+"! You defeated the boss! Now take the Chapter Exam!")}
+  if(BS.hearts<=0)return show(buddy()+`<div class="card" style="text-align:center"><div class="big">${BS.ic}</div><h2>Close battle! Try again!</h2><button class="go" onclick="${BS.fn}()">🔁 Retry Boss</button><button class="alt" onclick="go('map')">⬅ Map</button></div>`,"Don't worry "+S.name+", try the boss battle again!");
   const q=BS.qs[BS.i%BS.qs.length];BS.o=shuf(q[1].map((x,k)=>[x,k]));
-  show(buddy()+`<div class="card"><div class="bar"><i style="width:${BS.hp/6*100}%;background:var(--bad)"></i></div><p>${"❤️".repeat(BS.hearts)}${"🖤".repeat(3-BS.hearts)}</p><h3>${E(q[0])}</h3>${BS.o.map(o=>`<button class="opt" onclick="ba(this,${o[1]})">${E(o[0])}</button>`).join("")}</div>`);
+  show(buddy()+`<div class="card"><div class="big" style="font-size:3rem">${BS.ic}</div><div class="bar"><i style="width:${Math.round(BS.hp/BS.maxHp*100)}%;background:var(--bad)"></i></div><p>${"❤️".repeat(BS.hearts)}${"🖤".repeat(3-BS.hearts)}</p><h3>${E(q[0])}</h3>${BS.o.map(o=>`<button class="opt" onclick="ba(this,${o[1]})">${E(o[0])}</button>`).join("")}</div>`,q[0]);
 }
 function ba(b,k){if(k==0){snd("ok");BS.hp--;BS.i++;b.classList.add("ok");later(bq,350)}else{snd("bad");BS.hearts--;b.classList.add("no");later(bq,450)}}
 
@@ -777,7 +852,9 @@ function go6_3(i){const c=Math.abs(D6.p[i][1]-D6.p[D6.pos][1])*8;if(D6.bat-c<0){
 
 let GM1={grav:0.55,jump:11,spd:3.5,playing:false,py:190,vy:0,score:0,coins:[],obs:[]};
 function g6_4(){GM1={grav:0.55,jump:11,spd:3.5,playing:false,py:190,vy:0,score:0,coins:[],obs:[]};d6_4()}
-function d6_4(){$("#g").innerHTML=`<div class="card"><b>🎮 Game Maker 1: Coin Jumper</b><label>Gravity: ${GM1.grav}</label><input type="range" min="0.2" max="1.2" step="0.05" value="${GM1.grav}" oninput="GM1.grav=+this.value"><label>Jump: ${GM1.jump}</label><input type="range" min="6" max="15" value="${GM1.jump}" oninput="GM1.jump=+this.value"><button class="pri" onclick="startGM1()">▶ Play (Collect 5 Coins)</button><canvas id="cv1" class="gm" width="460" height="240"></canvas><div style="text-align:center"><button class="pri" onclick="jumpGM1()">⬆️ JUMP</button></div></div>`}
+function u6_4(){const g=$("#gv6"),j=$("#jp6"),c=$("#code6");if(g)g.textContent=GM1.grav;if(j)j.textContent=GM1.jump;if(c)c.textContent=`let gravity = ${GM1.grav}, jumpPower = ${GM1.jump};
+function loop() { vy += gravity; player.y += vy; }`}
+function d6_4(){$("#g").innerHTML=`<div class="card"><b>🎮 Game Maker 1: Coin Jumper</b><label>Gravity: <b id="gv6">${GM1.grav}</b></label><input type="range" min="0.2" max="1.2" step="0.05" value="${GM1.grav}" oninput="GM1.grav=+this.value;u6_4()"><label>Jump: <b id="jp6">${GM1.jump}</b></label><input type="range" min="6" max="15" value="${GM1.jump}" oninput="GM1.jump=+this.value;u6_4()"><div class="codebox" id="code6"></div><button class="pri" onclick="startGM1()">▶ Play (Collect 5 Coins)</button><canvas id="cv1" class="gm" width="460" height="240"></canvas><div style="text-align:center"><button class="pri" onclick="jumpGM1()">⬆️ JUMP (Space / Tap)</button></div></div>`;u6_4()}
 function jumpGM1(){if(GM1.playing&&GM1.py>=188){GM1.vy=-GM1.jump;snd("tap")}}
 function startGM1(){stopLoops();GM1.playing=true;GM1.py=190;GM1.vy=0;GM1.score=0;GM1.coins=[{x:220,y:135},{x:360,y:160}];const cv=$("#cv1");if(!cv)return;const ctx=cv.getContext("2d");cv.onclick=jumpGM1;window.onkeydown=e=>{if(e.code=="Space"&&GM1.playing){e.preventDefault();jumpGM1()}};function loop(){if(!$("#cv1")||!GM1.playing)return;GM1.vy+=GM1.grav;GM1.py+=GM1.vy;if(GM1.py>190){GM1.py=190;GM1.vy=0}ctx.fillStyle="#06090f";ctx.fillRect(0,0,460,240);ctx.fillStyle="#12b886";ctx.fillRect(0,215,460,25);ctx.font="26px sans-serif";ctx.fillText("🤖",46,GM1.py+18);GM1.coins.forEach(c=>{c.x-=GM1.spd;if(c.x<-20){c.x=470;c.y=ri(95,180)}ctx.fillText("🪙",c.x,c.y);if(Math.abs(c.x-50)<26&&Math.abs(c.y-(GM1.py+10))<26){GM1.score++;c.x=490;snd("coin")}});ctx.fillStyle="#fff";ctx.font="bold 17px Inter,sans-serif";ctx.fillText("Coins: "+GM1.score+"/5",14,28);if(GM1.score>=5){GM1.playing=false;later(win,250);return}CK.raf=requestAnimationFrame(loop)}CK.raf=requestAnimationFrame(loop)}
 
@@ -914,7 +991,28 @@ function d26_0(){
   const g=[["🤖","1","2","3"],["1","🧱","3","4"],["2","3","🧱","5"],["3","4","5","⭐"]];
   $("#g").innerHTML=`<div class="card"><b>🗺️ BFS Shortest-Path Wavefront</b><div class="grid5" style="grid-template-columns:repeat(4,1fr)">${g.flat().map(v=>`<div class="cell">${BF.run?v:(v=="🤖"||v=="⭐"||v=="🧱"?v:"·")}</div>`).join("")}</div><button class="pri" onclick="BF.run=1;snd('ok');d26_0()">▶ Run BFS Wavefront</button>${BF.run?`<button class="go" onclick="win()">🗺️ Shortest Path Found (6 steps)!</button>`:""}</div>`;
 }
-function g26_1(){g6_4()}
+let GM3={playing:false,x:40,y:190,vy:0,jumps:0,stars:0,items:[]};
+function g26_1(){GM3={playing:false,x:40,y:190,vy:0,jumps:0,stars:0,items:[]};d26_1()}
+function d26_1(){$("#g").innerHTML=`<div class="card"><b>🎮 Game Maker 3: Turbo Double-Jump Platformer</b><p class="mut">Jump TWICE in mid-air to reach high stars and collect 6 stars!</p><button class="pri" onclick="startGM3()">▶ Launch Platformer (6 Stars)</button><canvas id="cv3" class="gm" width="460" height="240"></canvas><div style="text-align:center"><button class="pri" onclick="jumpGM3()">⬆️ DOUBLE JUMP (Space / Tap)</button></div></div>`}
+function jumpGM3(){if(GM3.playing&&GM3.jumps<2){GM3.vy=-9.5;GM3.jumps++;snd("tap")}}
+function startGM3(){
+  stopLoops();GM3.playing=true;GM3.y=190;GM3.vy=0;GM3.jumps=0;GM3.stars=0;
+  GM3.items=[{x:200,y:140},{x:340,y:75},{x:460,y:115}];
+  const cv=$("#cv3");if(!cv)return;const ctx=cv.getContext("2d");
+  cv.onclick=jumpGM3;window.onkeydown=e=>{if(e.code=="Space"&&GM3.playing){e.preventDefault();jumpGM3()}};
+  function loop(){
+    if(!$("#cv3")||!GM3.playing)return;
+    GM3.vy+=0.5;GM3.y+=GM3.vy;if(GM3.y>190){GM3.y=190;GM3.vy=0;GM3.jumps=0}
+    ctx.fillStyle="#06090f";ctx.fillRect(0,0,460,240);
+    ctx.fillStyle="#2dd4bf";ctx.fillRect(0,215,460,25);
+    ctx.font="26px sans-serif";ctx.fillText("🚀",46,GM3.y+18);
+    GM3.items.forEach(it=>{it.x-=3.8;if(it.x<-20){it.x=475;it.y=ri(55,180)}ctx.fillText("⭐",it.x,it.y);if(Math.abs(it.x-50)<26&&Math.abs(it.y-(GM3.y+10))<26){GM3.stars++;it.x=490;snd("coin")}});
+    ctx.fillStyle="#fff";ctx.font="bold 17px Inter,sans-serif";ctx.fillText("Stars: "+GM3.stars+"/6 · Jumps left: "+(2-GM3.jumps),14,28);
+    if(GM3.stars>=6){GM3.playing=false;later(win,250);return}
+    CK.raf=requestAnimationFrame(loop);
+  }
+  CK.raf=requestAnimationFrame(loop);
+}
 function g27_0(){quiz("🤝 Win-Win Negotiation",[["Two teammates want the only orange: one needs juice, one needs the peel for baking.",["Share: juice for one, peel for the other!","Cut it in half blindly"],0]])}
 function g27_1(){quiz("🎤 Executive Storytelling",[["Best structure for pitching your AI invention:",["1. Hook (Problem) -> 2. Live Demo -> 3. Clear Takeaway","Read 40 paragraphs silently"],0]])}
 
