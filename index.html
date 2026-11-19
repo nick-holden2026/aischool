@@ -122,7 +122,8 @@ canvas.gm{width:100%;max-width:520px;height:240px;background:#06090f;border-radi
 #hmod{position:fixed;inset:0;z-index:65;background:#0008;display:none;place-items:center;padding:16px}
 #hmod.open{display:grid}
 .hcard{background:var(--card);color:var(--ink);border:3px solid var(--p);border-radius:var(--rad);max-width:460px;width:100%;padding:18px;box-shadow:0 12px 36px #0006}
-.hstep{background:color-mix(in srgb,var(--p) 12%,transparent);border-left:4px solid var(--p);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:.95rem}
+.hstep{background:color-mix(in srgb,var(--p) 12%,transparent);border-left:4px solid var(--p);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:.93rem}
+.hdemo{width:100%;height:150px;background:#0b1020;border:2px solid var(--p);border-radius:14px;display:block;margin:8px 0}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 @media print{.tabs,.top,.bd,.noprint,#wl,.chbar{display:none!important}body{background:#fff;color:#000}}
 </style></head><body>
@@ -608,7 +609,7 @@ function hdr(){
   const tabList=[["map","🗺️ Quest"],["chs","📖 8 Eras"],["gym","♾️ Gym"],["shop",curEra()<=2?"🛍️ Workshop":"⚙️ Profile"],["tro","🏆 Diploma"]];
   $("#tabs").innerHTML=tabList.map(t=>`<button class="${V==t[0]?"on":""}" onclick="go('${t[0]}')">${t[1]}</button>`).join("");
 }
-function show(h,t){stopLoops();$("#main").innerHTML=h;hdr();window.scrollTo(0,0);if(t)say(t)}
+function show(h,t){stopLoops();closeHelp();$("#main").innerHTML=h;hdr();window.scrollTo(0,0);if(t)say(t)}
 function go(v){V=v;snd("tap");({map,chs,gym,shop,tro})[v]()}
 function init(p){S.pet=p;save();$("#wl").style.display="none";if(window.speechSynthesis)try{window.speechSynthesis.getVoices()}catch(e){}snd("up");V="map";map(SD()+" Hi "+S.name+"! Pass each chapter and its exam to evolve through all 8 Eras, from Explorer to Chief AI Architect!")}
 function selCh(n){
@@ -680,7 +681,115 @@ function findM(id){for(const c of CHS){const m=c.ms.find(x=>x.id==id);if(m)retur
 function start(id){M_MODE="start";const f=findM(id);if(!f)return;C=f.m;mis=0;show(buddy()+`<div class="card" style="text-align:center"><div class="big">${C.e}</div><h2 style="margin:0">${E(C.t)}</h2><p>${E(C.s)}</p></div><button class="go" onclick="play()">Start ➜</button><button class="alt" onclick="go('map')">⬅ Back</button>`,C.s)}
 function play(){M_MODE="play";mis=0;show(buddy()+`<div id="g"></div><div id="aid" style="margin-top:10px"><button class="alt" onclick="hint()">💡 Hint</button> <button class="alt" onclick="go('map')">⬅ Map</button></div>`,C.t);window[C.fn]()}
 function hint(){openHelp()}
-function closeHelp(){const m=$("#hmod");if(m)m.classList.remove("open")}
+let H_RAF=null;
+function stopHelpAnim(){if(H_RAF){cancelAnimationFrame(H_RAF);H_RAF=null;}}
+function closeHelp(){stopHelpAnim();const m=$("#hmod");if(m)m.classList.remove("open")}
+function helpKind(){
+  if(M_MODE=="map"||M_MODE=="chs"||M_MODE=="shop"||M_MODE=="tro")return "map";
+  if(M_MODE=="exam"||M_MODE=="boss"||M_MODE=="gym")return "choice";
+  if(!C)return "map";
+  const f=C.fn||"";
+  if(/g3_0|g3_2|g6_0|g7_3|g26_0/.test(f))return "grid";
+  if(/g3_1|g8_4|g8_5|g8_6|g10_1l|g21_|g22_/.test(f))return "llm";
+  if(/g6_4|g9_4|g26_1/.test(f))return "game";
+  if(/g3_3|g3_5|g5_0|g5_1|g6_2|g7_1|g7_2|g14_0m|g18_1|g19_|g20_|g25_0|g28_0|g29_1/.test(f))return "slider";
+  if(/g7_0_cs|g7_1_cs|g7_2_cs|g9_0c|g9_1c|g9_2c|g13_|g17_|g18_0|g24_/.test(f))return "code";
+  return "choice";
+}
+function startHelpAnim(kind){
+  stopHelpAnim();
+  const cv=$("#hcv");if(!cv)return;
+  const ctx=cv.getContext("2d");
+  const W=420,H=150;
+  let t0=performance.now();
+  function frame(now){
+    if(!$("#hcv")){stopHelpAnim();return;}
+    const t=((now-t0)/1000)%6;
+    ctx.fillStyle="#0b1020";ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#94a3b8";ctx.font="bold 12px Inter,sans-serif";
+    ctx.fillText("🎬 ANIMATED HOW-TO DEMO",12,18);
+
+    if(kind=="grid"){
+      const ox=40,oy=28,sz=20,pts=[[1,0],[2,0],[3,0],[1,1],[3,1],[1,2],[3,2],[1,3],[3,3],[1,4],[2,4],[3,4]];
+      const step=Math.floor(t*2.4);
+      for(let r=0;r<5;r++)for(let c=0;c<5;c++){
+        const idx=pts.findIndex(p=>p[0]==c&&p[1]==r);
+        const on=idx>=0&&idx<=step;
+        ctx.fillStyle=on?"#6c3cf0":"#1e293b";
+        ctx.fillRect(ox+c*(sz+3),oy+r*(sz+3),sz,sz);
+      }
+      const cur=pts[Math.min(step,pts.length-1)];
+      ctx.font="18px sans-serif";ctx.fillText("👆",ox+cur[0]*(sz+3)+2,oy+cur[1]*(sz+3)+18);
+      ctx.fillStyle="#f8fafc";ctx.font="bold 14px Inter,sans-serif";
+      ctx.fillText("1. Tap squares step-by-step",175,62);
+      ctx.fillStyle="#34d399";ctx.fillText(step>=pts.length-1?"2. Pattern complete! ✅":"2. Watch the shape form...",175,90);
+    }else if(kind=="slider"){
+      const p=Math.min(1,t/4),x=45+p*250,hit=p>0.72;
+      ctx.fillStyle="#1e293b";ctx.fillRect(45,66,270,12);
+      ctx.fillStyle="#16b97d55";ctx.fillRect(225,60,65,24);
+      ctx.fillStyle=hit?"#16b97d":"#38bdf8";ctx.beginPath();ctx.arc(x,72,11,0,Math.PI*2);ctx.fill();
+      ctx.font="18px sans-serif";ctx.fillText("👆",x-8,104);
+      ctx.fillStyle="#f8fafc";ctx.font="bold 14px Inter,sans-serif";
+      ctx.fillText(hit?"✅ Target Zone Matched!":"Slide handle into the green target zone",45,42);
+      ctx.fillStyle="#fbbf24";ctx.fillText("Live output updates as you slide!",45,132);
+    }else if(kind=="llm"){
+      const toks=["The","robot","loves","pizza"];
+      toks.forEach((w,i)=>{
+        const show=t>i*0.9;
+        ctx.fillStyle=show?(i==3?"#16b97d":"#6c3cf0"):"#1e293b";
+        ctx.fillRect(20+i*96,52,86,34);
+        ctx.fillStyle="#fff";ctx.font="bold 14px JetBrains Mono,monospace";
+        if(show)ctx.fillText(w,32+i*96,74);
+      });
+      ctx.fillStyle="#fbbf24";ctx.font="bold 13px Inter,sans-serif";
+      ctx.fillText(t<2.7?"Step 1: Chop text into Tokens & train...":"Step 2: Model predicts next word -> pizza ✅",20,118);
+    }else if(kind=="game"){
+      ctx.fillStyle="#12b886";ctx.fillRect(0,126,W,24);
+      const jump=Math.abs(Math.sin(t*2.4))*58;
+      const cx=W-((t*110)%W);
+      ctx.font="26px sans-serif";ctx.fillText("🤖",52,120-jump);
+      ctx.fillText("🪙",cx,76);
+      ctx.fillStyle="#f8fafc";ctx.font="bold 13px Inter,sans-serif";
+      ctx.fillText("Tap JUMP (or Space) to leap & collect!",130,44);
+    }else if(kind=="code"){
+      const bits=[1,0,1,0],w=[8,4,2,1],lit=Math.floor(t*1.2);
+      bits.forEach((b,i)=>{
+        const on=i<=lit&&b==1;
+        ctx.fillStyle=on?"#16b97d":"#1e293b";
+        ctx.fillRect(36+i*88,44,72,44);
+        ctx.fillStyle="#fff";ctx.font="bold 18px JetBrains Mono,monospace";
+        ctx.fillText(String(on?1:0),65+i*88,68);
+        ctx.font="11px Inter,sans-serif";ctx.fillText("×"+w[i],62+i*88,83);
+      });
+      ctx.fillStyle="#38bdf8";ctx.font="bold 13px Inter,sans-serif";
+      ctx.fillText(lit>=2?"8 + 2 = 10  ✅ Unit Test Passed!":"Check each step / bit carefully...",36,120);
+    }else if(kind=="map"){
+      const nodes=[["1","Module"],["2","Module"],["3","Exam"],["4","Next Ch!"]];
+      const cur=Math.min(3,Math.floor(t/1.3));
+      nodes.forEach((n,i)=>{
+        ctx.fillStyle=i<=cur?"#16b97d":"#334155";
+        ctx.beginPath();ctx.arc(62+i*96,74,22,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#fff";ctx.font="bold 13px Inter,sans-serif";
+        ctx.fillText(i==3&&cur<3?"🔒":n[0],56+i*96,79);
+        ctx.fillStyle="#cbd5e1";ctx.font="11px Inter,sans-serif";ctx.fillText(n[1],42+i*96,112);
+      });
+      ctx.fillStyle="#fbbf24";ctx.font="bold 13px Inter,sans-serif";
+      ctx.fillText("Finish modules + pass Exam -> Unlock Next Chapter!",40,136);
+    }else{
+      const opts=["A) Guess randomly","B) Use clues & verify ✅","C) Skip safety"];
+      const scan=Math.floor(t/1.6)%3;
+      opts.forEach((o,i)=>{
+        const winOpt=i==1&&t>3.2;
+        ctx.fillStyle=winOpt?"#16b97d":(i==scan?"#3b5bdb":"#1e293b");
+        ctx.fillRect(28,32+i*35,364,28);
+        ctx.fillStyle="#fff";ctx.font="bold 13px Inter,sans-serif";
+        ctx.fillText((i==scan?"🔍 ":"")+o,40,51+i*35);
+      });
+    }
+    H_RAF=requestAnimationFrame(frame);
+  }
+  H_RAF=requestAnimationFrame(frame);
+}
 function openHelp(){
   let title=PE()+" "+PN()+"’s Guide",what="",steps="";
   if((M_MODE=="play"||M_MODE=="start")&&C){
@@ -709,6 +818,7 @@ function openHelp(){
   const spoken=SD()+" "+PN()+" here! "+what+" Here is how to do it: "+steps;
   const hb=$("#hbody");
   if(hb)hb.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">${E(title)}</h3><button class="alt" style="margin:0;padding:4px 10px" onclick="closeHelp()" aria-label="Close help">✖</button></div>
+  <canvas id="hcv" class="hdemo" width="420" height="150" aria-label="Animated how-to demonstration"></canvas>
   <div class="hstep"><b>🎯 What this task is about:</b><br>${E(what)}</div>
   <div class="hstep"><b>💡 How to complete it step-by-step:</b><br>${E(steps)}</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
@@ -716,6 +826,7 @@ function openHelp(){
     <button class="alt" onclick="closeHelp()">👍 Got it!</button>
   </div>`;
   const hm=$("#hmod");if(hm)hm.classList.add("open");
+  startHelpAnim(helpKind());
   say(spoken);
 }
 function bad(){mis++;snd("bad");if(mis>=5&&!$("#skip"))$("#aid").insertAdjacentHTML("beforeend",`<button class="alt" id="skip" onclick="win(1)">⏭️ Skip</button>`)}
